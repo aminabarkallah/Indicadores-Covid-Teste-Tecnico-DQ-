@@ -1,0 +1,181 @@
+    -- * Padronizacao *
+
+UPDATE
+    Indicadores_Covid
+SET
+profissionalSaude= REPLACE(profissionalSaude,'ã','a');
+UPDATE
+    Indicadores_Covid
+SET
+sintomas = REPLACE(sintomas,'á','a');
+UPDATE
+    Indicadores_Covid
+SET
+sintomas = REPLACE(sintomas,'ç','c');
+UPDATE
+    Indicadores_Covid
+SET
+sintomas = REPLACE(sintomas,'ú','u');
+UPDATE
+    Indicadores_Covid
+SET
+municipio= REPLACE(municipio,'ã','a');
+UPDATE
+    Indicadores_Covid
+SET
+municipio= REPLACE(municipio,'ç','c');
+UPDATE
+    Indicadores_Covid
+SET
+municipio= REPLACE(municipio,'é','e');
+UPDATE
+    Indicadores_Covid
+SET
+municipio= REPLACE(municipio,'ó','o');
+UPDATE
+    Indicadores_Covid
+SET
+municipio= REPLACE(municipio,'í','i');
+UPDATE
+    Indicadores_Covid
+SET
+municipio= REPLACE(municipio,'û','u');
+UPDATE
+    Indicadores_Covid
+SET
+municipio= REPLACE(municipio,'â','a');
+UPDATE
+    Indicadores_Covid
+SET
+municipio= REPLACE(municipio,'á','a');
+UPDATE
+    Indicadores_Covid
+SET
+municipio= REPLACE(municipio,'ô','o');
+UPDATE
+    Indicadores_Covid
+SET
+municipio= REPLACE(municipio,'ú','u');
+UPDATE
+    Indicadores_Covid
+SET
+municipio= REPLACE(municipio,'ê','e');
+UPDATE
+    Indicadores_Covid
+SET
+municipio= REPLACE(municipio,'õ','o');
+
+UPDATE
+    Indicadores_Covid
+SET
+municipio= upper(municipio);
+UPDATE
+    Indicadores_Covid
+SET
+sintomas= upper(sintomas);
+UPDATE
+    Indicadores_Covid
+SET
+profissionalSaude= upper(profissionalSaude);
+UPDATE
+    Indicadores_Covid
+SET
+racaCor= upper(racaCor);
+UPDATE
+    Indicadores_Covid
+SET
+outrosSintomas= upper(outrosSintomas);
+UPDATE
+    Indicadores_Covid
+SET
+sexo= upper(sexo);
+
+select * from Indicadores_Covid;
+
+     -- * unicidade *
+
+SELECT
+    source_id,
+    SUM(1) AS count
+FROM Indicadores_Covid
+GROUP BY 1
+HAVING count > 1;
+
+     -- * preenchimento *
+	 
+SELECT round(100.0 * SUM(CASE WHEN municipio IS NULL THEN 1 ELSE 0 END) / COUNT(*),2) as preenchimento_municipio,
+round(100.0 * SUM(CASE WHEN profissionalSaude IS NULL THEN 1 ELSE 0 END) / COUNT(*),2) as preenchimento_profissionalSaude,
+round(100.0 * SUM(CASE WHEN uf IS NULL THEN 1 ELSE 0 END) / COUNT(*),2) as preenchimento_uf,
+round(100.0 * SUM(CASE WHEN idade IS NULL THEN 1 ELSE 0 END) / COUNT(*),2) as preenchimento_idade,
+round(100.0 * SUM(CASE WHEN racaCor IS NULL THEN 1 ELSE 0 END) / COUNT(*),2) as preenchimento_racaCor,
+round(100.0 * SUM(CASE WHEN sexo IS NULL THEN 1 ELSE 0 END) / COUNT(*),2) as preenchimento_sexo,
+round(100.0 * SUM(CASE WHEN sintomas IS NULL THEN 1 ELSE 0 END) / COUNT(*),2) as preenchimento_sintomas,
+round(100.0 * SUM(CASE WHEN (dataInicioSintomas IS NOT NULL AND sintomas = 'ASSINTOMATICO') THEN 1 ELSE 0 END) / COUNT(*),2) as preenchimento_dataInicioSintomas
+from Indicadores_Covid;
+
+     -- * consistencia *
+ 
+				   
+-- * verificacao dataNotificacao *
+
+Select source_id, dataNotificacao  
+  from Indicadores_Covid
+  where dataNotificacao not between Datetime('2020-04-01') 
+                   and Datetime('2022-07-22');
+
+-- * verificacao dataInicioSintomas *
+
+Select dataInicioSintomas
+  from Indicadores_Covid
+  where dataInicioSintomas not between Datetime('2020-04-01') 
+                   and Datetime('2022-07-22');
+
+
+-- * verificacao dataPrimeiraDose *
+
+Select dataPrimeiraDose
+  from Indicadores_Covid
+  where dataPrimeiraDose not between Datetime('2020-03-23') 
+                   and Datetime('2022-07-22');
+
+-- * verificacao dataSegundaDose *
+
+Select source_id, dataSegundaDose
+  from Indicadores_Covid
+  where dataSegundaDose not between Datetime('2020-08-19') 
+                   and Datetime('2022-07-22');
+
+-- * verificacao idade *
+
+Select * from Indicadores_Covid where (typeof(idade)<>"integer" OR idade>119);	
+
+-- * verificacao codigo dose *
+
+Select * from Indicadores_Covid where
+codigoLaboratorioPrimeiraDose NOT IN ('ASTRAZENECA/FIOCRUZ', 'JANSSEN', 'SINOVAC/BUTANTAN', 'PFIZER')
+OR codigoLaboratorioSegundaDose NOT IN ('ASTRAZENECA/FIOCRUZ', 'JANSSEN', 'SINOVAC/BUTANTAN', 'PFIZER');
+
+-- * verificacao dataDose *
+
+SELECT * FROM Indicadores_Covid WHERE dataSegundaDose < dataPrimeiraDose;
+
+-- * verificacao sexo * 
+
+SELECT * FROM Indicadores_Covid WHERE upper(sexo) NOT IN ('MASCULINO', 'FEMININO' , 'INDEFINIDO');
+
+-- * verificacao racaCor * 
+
+SELECT * FROM Indicadores_Covid WHERE upper(racaCor) NOT IN ('AMARELA', 'BRANCA', 'IGNORADO', 'INDIGENA', 'PARDA', 'PRETA');
+
+-- * verificacao unidade federal *
+
+SELECT * FROM Indicadores_Covid WHERE upper(uf) NOT IN ('AC','AL','AM','AP','BA','CE','DF','ES','GO','MA','MG',
+'MS','MT','PA','PB','PE','PI','PR','RJ','RN','RO','RR','RS','SC','SE','SP','TO');
+
+     -- * abrangencia *
+
+SELECT uf, 
+round(count(municipio),2) as  Distribucao,
+round(count (*) * 100.0 / sum(count(*)) over(),2) as Percentagem
+From Indicadores_Covid where uf is not NULL 
+group by uf;	 
